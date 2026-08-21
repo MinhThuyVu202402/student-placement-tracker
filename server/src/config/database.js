@@ -1,4 +1,7 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+const POSTGRES_DATE_OID = 1082;
+types.setTypeParser(POSTGRES_DATE_OID, (value) => value);
 
 const connectionString = process.env.DATABASE_URL;
 
