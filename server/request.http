@@ -1,0 +1,8 @@
+### Check server
+GET http://localhost:5000/
+
+### Retrieve all aplications
+GET http://localhost:5000/applications
+
+### Retrieve an aplications by id
+GET http://localhost:5000/applications/1
