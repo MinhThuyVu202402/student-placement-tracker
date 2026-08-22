@@ -3,8 +3,9 @@ const { pool } = require('../config/database');
 const {
     editableApplicationFields,
     isValidDate,
-    isValidRequiredFields
-} = require('../validation/application');
+    isValidRequiredFields,
+    isValidDateFields
+    } = require('../validation/application');
 
 const router = express.Router();
 
@@ -86,37 +87,11 @@ router.post("/", async (request, response) => {
         const cleanedCompany = company.trim();
         const cleanedRole = role.trim();
 
-        if (applied_date !== null) {
-            if (!isValidDate(applied_date)) {
-                return response.status(400).json({
-                    message: "Applied date must be a valid date in YYYY-MM-DD format"
-                });
-            }
+        const dateFieldsError = isValidDateFields(applied_date, status, deadline_date, next_action_date);
 
-            const today = new Date().toISOString().slice(0, 10);
-
-            if (applied_date > today) {
-                return response.status(400).json({
-                    message: "Applied date cannot be in the future"
-                });
-            }
-
-            if (["saved", "preparing"].includes(status)) {
-                return response.status(400).json({
-                    message: "Applied date is not allowed for saved or preparing applications"
-                });
-            }
-        }
-
-        if (deadline_date !== null && !isValidDate(deadline_date)) {
+        if (dateFieldsError) {
             return response.status(400).json({
-                message: "Deadline date must be a valid date in YYYY-MM-DD format"
-            });
-        }
-
-        if (next_action_date !== null && !isValidDate(next_action_date)) {
-            return response.status(400).json({
-                message: "Next action date must be a valid date in YYYY-MM-DD format"
+                message: dateFieldsError
             });
         }
 
@@ -220,37 +195,11 @@ router.patch("/:id", async (request, response) => {
         const cleanedCompany = company.trim();
         const cleanedRole = role.trim();
 
-        if (applied_date !== null) {
-            if (!isValidDate(applied_date)) {
-                return response.status(400).json({
-                    message: "Applied date must be a valid date in YYYY-MM-DD format"
-                });
-            }
+        const dateFieldsError = isValidDateFields(applied_date, status, deadline_date, next_action_date);
 
-            const today = new Date().toISOString().slice(0, 10);
-
-            if (applied_date > today) {
-                return response.status(400).json({
-                    message: "Applied date cannot be in the future"
-                });
-            }
-
-            if (["saved", "preparing"].includes(status)) {
-                return response.status(400).json({
-                    message: "Applied date is not allowed for saved or preparing applications"
-                });
-            }
-        }
-
-        if (deadline_date !== null && !isValidDate(deadline_date)) {
+        if (dateFieldsError) {
             return response.status(400).json({
-                message: "Deadline date must be a valid date in YYYY-MM-DD format"
-            });
-        }
-
-        if (next_action_date !== null && !isValidDate(next_action_date)) {
-            return response.status(400).json({
-                message: "Next action date must be a valid date in YYYY-MM-DD format"
+                message: dateFieldsError
             });
         }
 

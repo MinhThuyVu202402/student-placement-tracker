@@ -63,8 +63,36 @@ function isValidRequiredFields(company, role, status) {
     return null;
 }
 
+function isValidDateFields(applied_date, status, deadline_date, next_action_date) {
+    if (applied_date !== null) {
+        if (!isValidDate(applied_date)) {
+            return "Applied date must be a valid date in YYYY-MM-DD format";
+        }
+
+        const today = new Date().toISOString().slice(0, 10);
+
+        if (applied_date > today) {
+            return "Applied date cannot be in the future";
+        }
+
+        if (["saved", "preparing"].includes(status)) {
+            return "Applied date is not allowed for saved or preparing applications";
+        }
+    }
+
+    if (deadline_date !== null && !isValidDate(deadline_date)) {
+        return "Deadline date must be a valid date in YYYY-MM-DD format";
+    }
+
+    if (next_action_date !== null && !isValidDate(next_action_date)) {
+        return "Next action date must be a valid date in YYYY-MM-DD format";
+    }
+    return null;
+}
+
 module.exports = {
     editableApplicationFields,
     isValidDate,
-    isValidRequiredFields
+    isValidRequiredFields,
+    isValidDateFields,
 };
