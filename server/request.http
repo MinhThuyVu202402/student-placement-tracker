@@ -23,3 +23,17 @@ Content-Type: application/json
   "next_action_date": null,
   "notes": "Found through website"
 }
+
+### Update selected application fields
+PATCH http://localhost:5000/applications/5
+Content-Type: application/json
+
+{
+  "company": "AWS",
+  "role": "AI Engineering Intern",
+  "next_action_text": "Prepare STAR examples",
+  "next_action_date": "2026-08-28"
+}
+
+### Delete an application
+DELETE http://localhost:5000/applications/4
