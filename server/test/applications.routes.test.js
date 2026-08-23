@@ -284,3 +284,162 @@ test("DELETE /applications/:id deletes an application", async () => {
     assert.equal(body.message, "Application deleted successfully");
     assert.deepEqual(body.deletedApplication, deletedApplication);
 });
+
+test("POST /applications rejects a missing company", async () => {
+    const response = await fetch(`${apiUrl}/applications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            role: "Software Engineering Intern",
+            status: "saved"
+        })
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, "Company name is required");
+});
+
+test("POST /applications rejects an invalid status", async () => {
+    const response = await fetch(`${apiUrl}/applications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            company: "Canva",
+            role: "Software Engineering Intern",
+            status: "unknown"
+        })
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, "Status is invalid");
+});
+
+test("PATCH /applications/:id rejects an empty body", async () => {
+    const response = await fetch(`${apiUrl}/applications/1`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, "At least one field is required");
+});
+
+test("PATCH /applications/:id rejects fields that cannot be edited", async () => {
+    const response = await fetch(`${apiUrl}/applications/1`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: 99 })
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, "Fields cannot be updated: id");
+});
+
+test("PATCH /applications/:id returns 404 when the application does not exist", async () => {
+    pool.query = async (sql, values) => {
+        assert.match(
+            sql,
+            /SELECT\s+\*\s+FROM\s+public\.applications\s+WHERE\s+id\s+=\s+\$1/
+        );
+        assert.deepEqual(values, [999]);
+
+        return { rows: [] };
+    };
+
+    const response = await fetch(`${apiUrl}/applications/999`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: "Updated notes" })
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 404);
+    assert.equal(body.message, "Application not found");
+});
+
+test("PATCH /applications/:id rejects an invalid status after loading the application", async () => {
+    const existingApplication = {
+        "id": "1",
+        "company": "Canva",
+        "role": "Software Engineering Intern",
+        "location": "Sydney / Hybrid",
+        "job_url": "https://example.com/job",
+        "status": "saved",
+        "deadline_date": "2026-09-15",
+        "applied_date": null,
+        "next_action_text": "Prepare application",
+        "next_action_date": "2026-09-10",
+        "notes": "Found through university portal"
+    };
+    let queryCount = 0;
+
+    pool.query = async (sql, values) => {
+        queryCount += 1;
+        assert.match(sql, /SELECT\s+\*/);
+        assert.deepEqual(values, [1]);
+
+        return { rows: [existingApplication] };
+    };
+
+    const response = await fetch(`${apiUrl}/applications/1`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "unknown" })
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, "Status is invalid");
+    assert.equal(queryCount, 1);
+});
+
+test("DELETE /applications/:id rejects an invalid ID", async () => {
+    const response = await fetch(`${apiUrl}/applications/hello`, {
+        method: "DELETE"
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, "Application ID must be a positive integer");
+});
+
+test("DELETE /applications/:id returns 404 when the application does not exist", async () => {
+    pool.query = async (sql, values) => {
+        assert.match(sql, /DELETE\s+FROM\s+public\.applications/);
+        assert.deepEqual(values, [999]);
+
+        return { rows: [] };
+    };
+
+    const response = await fetch(`${apiUrl}/applications/999`, {
+        method: "DELETE"
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 404);
+    assert.equal(body.message, "Application not found");
+});
+
+test("GET /applications returns 500 when the database query fails", async () => {
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
+    pool.query = async () => {
+        throw new Error("Database unavailable");
+    };
+
+    try {
+        const response = await fetch(`${apiUrl}/applications`);
+        const body = await response.json();
+
+        assert.equal(response.status, 500);
+        assert.equal(body.message, "Failed to retrieve applications");
+    } finally {
+        console.error = originalConsoleError;
+    }
+});
