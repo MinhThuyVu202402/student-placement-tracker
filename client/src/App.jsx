@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { getApplications } from "./api/applications.js";
-import {ApplicationList} from "./components/ApplicationList.jsx";
-import {SummaryCard} from "./components/SummaryCard.jsx"
-import {LoadingState, ErrorState, EmptyState} from "./components/StatePanel.jsx";
+import { ApplicationForm } from "./components/ApplicationForm.jsx";
+import { ApplicationList } from "./components/ApplicationList.jsx";
+import { SummaryCard } from "./components/SummaryCard.jsx";
+import { LoadingState, ErrorState, EmptyState } from "./components/StatePanel.jsx";
 
 
 export default function App() {
@@ -10,6 +11,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [requestKey, setRequestKey] = useState(0);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -54,6 +57,20 @@ export default function App() {
       ? { className: "api-indicator--error", label: "API unavailable" }
       : { className: "api-indicator--connected", label: "API connected" };
 
+  function handleApplicationCreated(createdApplication) {
+    setApplications((currentApplications) => [
+      createdApplication,
+      ...currentApplications
+    ]);
+    setSuccessMessage(`${createdApplication.company} was added to your applications.`);
+    setIsFormOpen(false);
+  }
+
+  function handleOpenForm() {
+    setSuccessMessage(null);
+    setIsFormOpen(true);
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -88,12 +105,38 @@ export default function App() {
               <p className="eyebrow">Pipeline</p>
               <h2 id="applications-title">Applications</h2>
             </div>
-            {!isLoading && !error && (
-              <span className="record-count">
-                {applications.length} {applications.length === 1 ? "record" : "records"}
-              </span>
-            )}
+            <div className="section-heading-actions">
+              {!isLoading && !error && (
+                <span className="record-count">
+                  {applications.length} {applications.length === 1 ? "record" : "records"}
+                </span>
+              )}
+              {!isFormOpen && (
+                <button
+                  className="button"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="application-form"
+                  onClick={handleOpenForm}
+                >
+                  + Add application
+                </button>
+              )}
+            </div>
           </div>
+
+          {isFormOpen && (
+            <ApplicationForm
+              onCreated={handleApplicationCreated}
+              onCancel={() => setIsFormOpen(false)}
+            />
+          )}
+
+          {successMessage && (
+            <p className="success-message" role="status">
+              {successMessage}
+            </p>
+          )}
 
           {isLoading && <LoadingState />}
           {!isLoading && error && (
@@ -101,7 +144,7 @@ export default function App() {
           )}
           {!isLoading && !error && applications.length === 0 && <EmptyState />}
           {!isLoading && !error && applications.length > 0 && (
-              <ApplicationList applications={applications} />
+            <ApplicationList applications={applications} />
           )}
         </section>
       </main>

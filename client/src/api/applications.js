@@ -33,3 +33,21 @@ export async function getApplications({ signal } = {}) {
 
   return applications;
 }
+
+export async function createApplication(application) {
+  const response = await fetch(`${API_BASE_URL}/applications`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(application)
+  });
+
+  if (!response.ok) {
+    const serverMessage = await readErrorMessage(response);
+    throw new Error(serverMessage || `Could not create application (${response.status})`);
+  }
+
+  return response.json();
+}
